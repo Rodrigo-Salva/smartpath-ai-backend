@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # PostgreSQL para desarrollo
+  postgres:
+    image: postgres:15-alpine
+    container_name: smartpath-postgres-dev
+    environment:
+      POSTGRES_DB: smartpath_dev
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - smartpath-network
+
+  # Backend Spring Boot (comentado por ahora, lo activaremos después)
+  # backend:
+  #   build: ./backend
+  #   container_name: smartpath-backend
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     SPRING_PROFILES_ACTIVE: dev
+  #   depends_on:
+  #     - postgres
+  #   networks:
+  #     - smartpath-network
+
+  # Frontend React (comentado por ahora)
+  # frontend:
+  #   build: ./frontend
+  #   container_name: smartpath-frontend
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - smartpath-network
+
+volumes:
+  postgres-data:
+
+networks:
+  smartpath-network:
+    driver: bridge
