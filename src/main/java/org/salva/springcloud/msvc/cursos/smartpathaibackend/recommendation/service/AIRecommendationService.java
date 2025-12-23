@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.salva.springcloud.msvc.cursos.smartpathaibackend.ai.service.GeminiService;
 import org.salva.springcloud.msvc.cursos.smartpathaibackend.auth.entity.User;
 import org.salva.springcloud.msvc.cursos.smartpathaibackend.auth.repository.UserRepository;
+import org.salva.springcloud.msvc.cursos.smartpathaibackend.notification.listener.NotificationEventListener;
 import org.salva.springcloud.msvc.cursos.smartpathaibackend.recommendation.dto.AIRecommendationDTO;
 import org.salva.springcloud.msvc.cursos.smartpathaibackend.recommendation.model.AIRecommendation;
 import org.salva.springcloud.msvc.cursos.smartpathaibackend.recommendation.repository.AIRecommendationRepository;
@@ -29,13 +30,13 @@ public class AIRecommendationService {
     private final LearningResourceRepository resourceRepository;
     private final GeminiService geminiService;
     private final ObjectMapper objectMapper;
+    private final NotificationEventListener notificationEventListener;
 
     @Transactional
     public List<AIRecommendationDTO> generateRecommendationsForUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // ✅ Validar y usar valores por defecto si son null
         String targetRole = user.getTargetRole() != null && !user.getTargetRole().isBlank()
                 ? user.getTargetRole()
                 : "Desarrollo profesional general";
@@ -76,6 +77,10 @@ public class AIRecommendationService {
         }
 
         List<AIRecommendation> saved = recommendationRepository.saveAll(recommendations);
+
+        if (!saved.isEmpty()) {
+            notificationEventListener.onRecommendationGenerated(userId, saved.size());
+        }
 
         return saved.stream()
                 .map(this::mapToDTO)

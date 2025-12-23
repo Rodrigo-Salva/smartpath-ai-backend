@@ -1,19 +1,16 @@
 package org.salva.springcloud.msvc.cursos.smartpathaibackend.resource.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
-import java.time.LocalDateTime;
+
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LearningResourceDTO {
-    private Long id;
+public class UpdateResourceRequest {
     private String title;
     private String description;
     private String url;
@@ -26,6 +23,4 @@ public class LearningResourceDTO {
     private String rating;
     private List<String> tags;
     private Boolean isActive;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

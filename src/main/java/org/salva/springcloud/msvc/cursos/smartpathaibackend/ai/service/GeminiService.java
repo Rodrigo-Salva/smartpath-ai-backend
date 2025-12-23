@@ -44,6 +44,33 @@ public class GeminiService {
         }
     }
 
+    public String analyzeCVText(String cvText, String targetRole) {
+        String prompt = String.format("""
+        Analiza el siguiente CV y proporciona feedback detallado.
+        
+        Rol objetivo del candidato: %s
+        
+        CV:
+        %s
+        
+        Proporciona el análisis en formato JSON con esta estructura:
+        {
+          "overall_score": 8.5,
+          "strengths": ["punto fuerte 1", "punto fuerte 2", "punto fuerte 3"],
+          "weaknesses": ["debilidad 1", "debilidad 2"],
+          "improvements": ["mejora 1", "mejora 2", "mejora 3"]
+        }
+        
+        El overall_score debe ser de 0 a 10.
+        """,
+                targetRole != null ? targetRole : "No especificado",
+                cvText.length() > 8000 ? cvText.substring(0, 8000) : cvText
+        );
+
+        return callGemini(prompt);
+    }
+
+
     private String buildPrompt(String userProfile, String targetRole, String experienceLevel) {
         return String.format("""
             Eres un mentor experto en desarrollo de carrera tecnológica.
@@ -81,6 +108,163 @@ public class GeminiService {
             }
             """, userProfile, targetRole, experienceLevel);
     }
+
+    public String detectSkillsFromText(String cvText) {
+        String prompt = String.format("""
+        Analiza el siguiente CV y extrae TODAS las habilidades técnicas y blandas mencionadas.
+        
+        CV:
+        %s
+        
+        Responde en formato JSON con esta estructura:
+        {
+          "skills": [
+            {
+              "name": "Java",
+              "proficiency": "ADVANCED",
+              "years": 5,
+              "confidence": 0.95
+            },
+            {
+              "name": "Spring Boot",
+              "proficiency": "INTERMEDIATE",
+              "years": 3,
+              "confidence": 0.9
+            }
+          ]
+        }
+        
+        Niveles de proficiency: BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+        Confidence: 0.0 a 1.0 (qué tan seguro estás de que el candidato tiene esa skill)
+        """,
+                cvText.length() > 8000 ? cvText.substring(0, 8000) : cvText
+        );
+
+        return callGemini(prompt);
+    }
+
+    public String analyzeSkillGapsForRole(String targetRole, List<String> currentSkills) {
+        String skillsList = String.join(", ", currentSkills);
+
+        String prompt = String.format("""
+        Analiza las brechas de habilidades para el rol: %s
+        
+        Habilidades actuales del candidato:
+        %s
+        
+        Identifica las habilidades que le FALTAN para ese rol y responde en JSON:
+        {
+          "missing_skills": [
+            {
+              "skill": "Docker",
+              "importance": "CRITICAL",
+              "estimated_hours": 60,
+              "description": "Esencial para deployment moderno"
+            },
+            {
+              "skill": "Kubernetes",
+              "importance": "HIGH",
+              "estimated_hours": 80,
+              "description": "Importante para orquestación de contenedores"
+            }
+          ]
+        }
+        
+        Niveles de importance: CRITICAL, HIGH, MEDIUM, LOW
+        estimated_hours: horas de estudio estimadas para dominar la skill
+        """,
+                targetRole,
+                skillsList.isEmpty() ? "Ninguna identificada aún" : skillsList
+        );
+
+        return callGemini(prompt);
+    }
+
+    public String generateInterviewQuestions(String targetRole, String difficultyLevel,
+                                             String interviewType, Integer numberOfQuestions) {
+        String prompt = String.format("""
+        Genera %d preguntas de entrevista para el rol: %s
+        
+        Nivel de dificultad: %s
+        Tipo de entrevista: %s
+        
+        Las preguntas deben ser:
+        - Realistas y relevantes para el rol
+        - Variadas en dificultad
+        - Apropiadas para el nivel especificado
+        
+        Responde en formato JSON:
+        {
+          "questions": [
+            {
+              "question": "¿Puedes explicar qué es dependency injection en Spring?",
+              "type": "TECHNICAL"
+            },
+            {
+              "question": "Cuéntame sobre un proyecto desafiante que hayas completado",
+              "type": "BEHAVIORAL"
+            }
+          ]
+        }
+        
+        Tipos válidos: TECHNICAL, BEHAVIORAL, SITUATIONAL
+        """,
+                numberOfQuestions,
+                targetRole,
+                difficultyLevel != null ? difficultyLevel : "INTERMEDIATE",
+                interviewType != null ? interviewType : "MIXED"
+        );
+
+        return callGemini(prompt);
+    }
+
+    public String evaluateInterviewAnswer(String question, String answer, String targetRole) {
+        String prompt = String.format("""
+        Evalúa la siguiente respuesta de entrevista:
+        
+        Pregunta: %s
+        Respuesta del candidato: %s
+        Rol objetivo: %s
+        
+        Proporciona feedback constructivo en formato JSON:
+        {
+          "score": 8.5,
+          "feedback": "Buena respuesta que demuestra comprensión del concepto...",
+          "strengths": ["Claridad en la explicación", "Buenos ejemplos"],
+          "improvements": ["Podría profundizar en...", "Considerar mencionar..."]
+        }
+        
+        Score: 0-10 (donde 10 es excelente)
+        """,
+                question,
+                answer.length() > 2000 ? answer.substring(0, 2000) : answer,
+                targetRole
+        );
+
+        return callGemini(prompt);
+    }
+
+    public String generateOverallInterviewFeedback(String targetRole, Double avgScore, Integer totalQuestions) {
+        String prompt = String.format("""
+        Genera feedback general para una práctica de entrevista:
+        
+        Rol objetivo: %s
+        Score promedio: %.2f/10
+        Total de preguntas: %d
+        
+        Proporciona un resumen ejecutivo del desempeño, fortalezas generales 
+        y áreas de mejora para el candidato.
+        
+        Responde en formato de texto natural (no JSON), máximo 300 palabras.
+        """,
+                targetRole,
+                avgScore,
+                totalQuestions
+        );
+
+        return callGemini(prompt);
+    }
+
 
     private String callGemini(String prompt) {
         // URL completa: https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=API_KEY

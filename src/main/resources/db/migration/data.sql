@@ -1,0 +1,40 @@
+-- Insertar skills técnicas comunes
+INSERT INTO skills (name, description, category, is_active, created_at) VALUES
+                                                                            ('Java', 'Lenguaje de programación orientado a objetos', 'TECHNICAL', true, NOW()),
+                                                                            ('Spring Boot', 'Framework para desarrollo de aplicaciones Java', 'TECHNICAL', true, NOW()),
+                                                                            ('JavaScript', 'Lenguaje de programación para desarrollo web', 'TECHNICAL', true, NOW()),
+                                                                            ('React', 'Biblioteca JavaScript para construir interfaces de usuario', 'TECHNICAL', true, NOW()),
+                                                                            ('Python', 'Lenguaje de programación versátil', 'TECHNICAL', true, NOW()),
+                                                                            ('SQL', 'Lenguaje para gestión de bases de datos', 'TECHNICAL', true, NOW()),
+                                                                            ('PostgreSQL', 'Sistema de gestión de bases de datos relacional', 'TECHNICAL', true, NOW()),
+                                                                            ('Docker', 'Plataforma de contenedorización', 'TOOL', true, NOW()),
+                                                                            ('Git', 'Sistema de control de versiones', 'TOOL', true, NOW()),
+                                                                            ('REST API', 'Arquitectura para servicios web', 'TECHNICAL', true, NOW()),
+                                                                            ('Microservicios', 'Arquitectura de software', 'TECHNICAL', true, NOW()),
+                                                                            ('AWS', 'Plataforma de servicios en la nube', 'TOOL', true, NOW()),
+                                                                            ('Kubernetes', 'Orquestación de contenedores', 'TOOL', true, NOW()),
+                                                                            ('Node.js', 'Entorno de ejecución JavaScript', 'TECHNICAL', true, NOW()),
+                                                                            ('TypeScript', 'Superset tipado de JavaScript', 'TECHNICAL', true, NOW()),
+                                                                            ('Angular', 'Framework para aplicaciones web', 'TECHNICAL', true, NOW()),
+                                                                            ('Vue.js', 'Framework progresivo JavaScript', 'TECHNICAL', true, NOW()),
+                                                                            ('MongoDB', 'Base de datos NoSQL', 'TECHNICAL', true, NOW()),
+                                                                            ('Redis', 'Base de datos en memoria', 'TECHNICAL', true, NOW()),
+                                                                            ('Jenkins', 'Herramienta de integración continua', 'TOOL', true, NOW()),
+                                                                            ('Trabajo en equipo', 'Colaboración efectiva con otros', 'SOFT_SKILL', true, NOW()),
+                                                                            ('Comunicación', 'Expresión clara de ideas', 'SOFT_SKILL', true, NOW()),
+                                                                            ('Liderazgo', 'Capacidad de guiar equipos', 'SOFT_SKILL', true, NOW()),
+                                                                            ('Resolución de problemas', 'Análisis y solución de desafíos', 'SOFT_SKILL', true, NOW()),
+                                                                            ('Adaptabilidad', 'Flexibilidad ante cambios', 'SOFT_SKILL', true, NOW()),
+                                                                            ('Inglés', 'Idioma inglés', 'LANGUAGE', true, NOW()),
+                                                                            ('Español', 'Idioma español', 'LANGUAGE', true, NOW());
+
+-- Insertar algunos recursos de aprendizaje adicionales
+INSERT INTO learning_resources (title, description, url, resource_type, difficulty_level, provider, estimated_hours, is_free, rating, is_active, created_at, updated_at) VALUES
+                                                                                                                                                                             ('Java Programming Complete', 'Curso completo de programación en Java desde cero', 'https://udemy.com/java-complete', 'COURSE', 'BEGINNER', 'Udemy', 40, false, '4.7', true, NOW(), NOW()),
+                                                                                                                                                                             ('React for Beginners', 'Aprende React desde los fundamentos', 'https://udemy.com/react-beginners', 'COURSE', 'BEGINNER', 'Udemy', 30, false, '4.8', true, NOW(), NOW()),
+                                                                                                                                                                             ('Docker Mastery', 'Domina Docker y contenedores', 'https://udemy.com/docker-mastery', 'COURSE', 'INTERMEDIATE', 'Udemy', 20, false, '4.6', true, NOW(), NOW()),
+                                                                                                                                                                             ('Clean Code', 'Libro sobre código limpio y buenas prácticas', 'https://amazon.com/clean-code', 'BOOK', 'INTERMEDIATE', 'Prentice Hall', 50, false, '4.9', true, NOW(), NOW()),
+                                                                                                                                                                             ('freeCodeCamp', 'Plataforma de aprendizaje gratuita', 'https://freecodecamp.org', 'PLATFORM', 'BEGINNER', 'freeCodeCamp', 300, true, '4.8', true, NOW(), NOW()),
+                                                                                                                                                                             ('AWS Certified Solutions Architect', 'Preparación para certificación AWS', 'https://aws.amazon.com/certification', 'CERTIFICATION', 'ADVANCED', 'AWS', 100, false, '4.7', true, NOW(), NOW()),
+                                                                                                                                                                             ('JavaScript: The Good Parts', 'Libro sobre JavaScript avanzado', 'https://oreilly.com/js-good-parts', 'BOOK', 'INTERMEDIATE', "O'Reilly", 30, false, '4.5', true, NOW(), NOW()),
+                                                                                                                                                                             ('Kubernetes for Developers', 'Curso de Kubernetes orientado a devs', 'https://pluralsight.com/kubernetes', 'COURSE', 'ADVANCED', 'Pluralsight', 15, false, '4.6', true, NOW(), NOW());
