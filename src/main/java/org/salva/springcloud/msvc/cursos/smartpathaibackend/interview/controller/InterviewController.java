@@ -139,9 +139,11 @@ public class InterviewController {
             Authentication authentication) {
 
         Long userId = getUserIdFromAuth(authentication);
-        // Implementar método en service si es necesario
-        return ResponseEntity.ok(ApiResponse.success("Detalles obtenidos", null));
+        InterviewPracticeDTO interview = interviewService.getInterviewById(interviewId, userId);
+
+        return ResponseEntity.ok(ApiResponse.success("Detalles obtenidos", interview));
     }
+
 
     private Long getUserIdFromAuth(Authentication authentication) {
         String email = authentication.getName();

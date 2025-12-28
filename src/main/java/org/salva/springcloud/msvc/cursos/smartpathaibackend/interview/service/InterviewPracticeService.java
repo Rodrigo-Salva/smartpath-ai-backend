@@ -229,35 +229,71 @@ public class InterviewPracticeService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public InterviewPracticeDTO getInterviewById(Long interviewId, Long userId) {
+        InterviewPractice practice = practiceRepository.findById(interviewId)
+                .orElseThrow(() -> new RuntimeException("Entrevista no encontrada"));
+
+        if (!practice.getUser().getId().equals(userId)) {
+            throw new RuntimeException("No tienes permiso para acceder a esta entrevista");
+        }
+
+        return mapToDTO(practice);
+    }
+
     private List<InterviewQuestion> parseQuestionsResponse(InterviewPractice practice, String aiResponse) {
         List<InterviewQuestion> questions = new ArrayList<>();
 
         try {
-            JsonNode root = objectMapper.readTree(aiResponse);
+            log.info("=== PARSEANDO RESPUESTA DE IA ===");
+            log.info("Respuesta completa recibida: {}", aiResponse);
+
+            String cleanedResponse = aiResponse.replace("``````", "").trim();
+
+            log.info("Respuesta limpia: {}", cleanedResponse);
+
+            JsonNode root = objectMapper.readTree(cleanedResponse);
+            log.info("JSON Root parseado: {}", root);
+
             JsonNode questionsArray = root.get("questions");
+            log.info("Questions Array encontrado: {}", questionsArray);
 
             if (questionsArray != null && questionsArray.isArray()) {
+                log.info("Array de preguntas tiene {} elementos", questionsArray.size());
+
                 int questionNumber = 1;
                 for (JsonNode questionNode : questionsArray) {
-                    String text = questionNode.get("question").asText();
-                    String type = questionNode.has("type")
-                            ? questionNode.get("type").asText()
-                            : "TECHNICAL";
+                    log.info("Procesando pregunta {}: {}", questionNumber, questionNode);
 
-                    InterviewQuestion question = InterviewQuestion.builder()
-                            .interviewPractice(practice)
-                            .questionNumber(questionNumber++)
-                            .questionText(text)
-                            .questionType(type)
-                            .isAnswered(false)
-                            .build();
+                    if (questionNode.has("question")) {
+                        String text = questionNode.get("question").asText();
+                        String type = questionNode.has("type") ? questionNode.get("type").asText() : "TECHNICAL";
 
-                    questions.add(question);
+                        log.info("Pregunta {} creada: {} (tipo: {})", questionNumber, text, type);
+
+                        InterviewQuestion question = InterviewQuestion.builder()
+                                .interviewPractice(practice)
+                                .questionNumber(questionNumber++)
+                                .questionText(text)
+                                .questionType(type)
+                                .isAnswered(false)
+                                .build();
+
+                        questions.add(question);
+                    } else {
+                        log.error("Nodo de pregunta {} no tiene campo 'question': {}", questionNumber, questionNode);
+                    }
                 }
+            } else {
+                log.error("No se encontró array 'questions' o no es un array válido");
+                log.error("Root completo: {}", root);
             }
         } catch (Exception e) {
-            log.error("Error parseando preguntas: {}", e.getMessage());
-            // Fallback: crear preguntas genéricas
+            log.error("❌ ERROR PARSEANDO PREGUNTAS: {}", e.getMessage());
+            log.error("Stack trace completo:", e);
+            log.error("Respuesta que causó el error: {}", aiResponse);
+
+            log.warn("⚠️ USANDO FALLBACK: Creando preguntas genéricas");
             for (int i = 1; i <= practice.getTotalQuestions(); i++) {
                 questions.add(InterviewQuestion.builder()
                         .interviewPractice(practice)
@@ -269,8 +305,10 @@ public class InterviewPracticeService {
             }
         }
 
+        log.info("✅ Total de preguntas creadas: {}", questions.size());
         return questions;
     }
+
 
     private Double extractScoreFromFeedback(String feedback) {
         try {
@@ -314,6 +352,7 @@ public class InterviewPracticeService {
     private InterviewPracticeDTO mapToDTO(InterviewPractice practice) {
         return InterviewPracticeDTO.builder()
                 .id(practice.getId())
+                .userId(practice.getUser().getId())  // ✅ AGREGADO
                 .targetRole(practice.getTargetRole())
                 .difficultyLevel(practice.getDifficultyLevel())
                 .interviewType(practice.getInterviewType())
@@ -321,10 +360,12 @@ public class InterviewPracticeService {
                 .answeredQuestions(practice.getAnsweredQuestions())
                 .overallScore(practice.getOverallScore())
                 .status(practice.getStatus())
+                .aiFeedback(practice.getAiFeedback())  // ✅ AGREGADO
                 .createdAt(practice.getCreatedAt())
                 .completedAt(practice.getCompletedAt())
                 .build();
     }
+
 
     private InterviewQuestionDTO mapQuestionToDTO(InterviewQuestion question) {
         return InterviewQuestionDTO.builder()
@@ -344,11 +385,16 @@ public class InterviewPracticeService {
     private InterviewHistoryDTO mapToHistoryDTO(InterviewPractice practice) {
         return InterviewHistoryDTO.builder()
                 .id(practice.getId())
+                .userId(practice.getUser().getId())  // ✅ AGREGADO
                 .targetRole(practice.getTargetRole())
                 .interviewType(practice.getInterviewType())
-                .overallScore(practice.getOverallScore())
+                .difficultyLevel(practice.getDifficultyLevel())  // ✅ AGREGADO
                 .status(practice.getStatus())
+                .overallScore(practice.getOverallScore())
+                .totalQuestions(practice.getTotalQuestions())  // ✅ AGREGADO
+                .answeredQuestions(practice.getAnsweredQuestions())  // ✅ AGREGADO
                 .createdAt(practice.getCreatedAt())
+                .completedAt(practice.getCompletedAt())  // ✅ AGREGADO
                 .build();
     }
 }

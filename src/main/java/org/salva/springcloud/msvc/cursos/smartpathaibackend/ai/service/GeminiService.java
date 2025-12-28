@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -183,42 +184,83 @@ public class GeminiService {
     public String generateInterviewQuestions(String targetRole, String difficultyLevel,
                                              String interviewType, Integer numberOfQuestions) {
         String prompt = String.format("""
-        Genera %d preguntas de entrevista para el rol: %s
-        
-        Nivel de dificultad: %s
-        Tipo de entrevista: %s
-        
-        Las preguntas deben ser:
-        - Realistas y relevantes para el rol
-        - Variadas en dificultad
-        - Apropiadas para el nivel especificado
-        
-        Responde en formato JSON:
+    Genera exactamente %d preguntas de entrevista para el puesto de "%s".
+    
+    Nivel de dificultad: %s
+    Tipo de entrevista: %s
+    
+    IMPORTANTE: Responde ÚNICAMENTE con JSON válido en este formato EXACTO:
+    {
+      "questions": [
         {
-          "questions": [
-            {
-              "question": "¿Puedes explicar qué es dependency injection en Spring?",
-              "type": "TECHNICAL"
-            },
-            {
-              "question": "Cuéntame sobre un proyecto desafiante que hayas completado",
-              "type": "BEHAVIORAL"
-            }
-          ]
+          "question": "texto de la pregunta 1",
+          "type": "TECHNICAL"
+        },
+        {
+          "question": "texto de la pregunta 2",
+          "type": "BEHAVIORAL"
         }
-        
-        Tipos válidos: TECHNICAL, BEHAVIORAL, SITUATIONAL
-        """,
+      ]
+    }
+    
+    NO incluyas:
+    - Explicaciones adicionales
+    - Texto antes o después del JSON
+    - Bloques de código markdown
+    
+    Solo devuelve el JSON puro.
+    Tipos válidos: TECHNICAL, BEHAVIORAL, SITUATIONAL
+    """,
                 numberOfQuestions,
                 targetRole,
                 difficultyLevel != null ? difficultyLevel : "INTERMEDIATE",
                 interviewType != null ? interviewType : "MIXED"
         );
 
-        return callGemini(prompt);
+        try {
+            log.info("=== LLAMANDO A GEMINI ===");
+            log.info("Prompt: {}", prompt);
+
+            String response = callGemini(prompt);
+
+            log.info("=== RESPUESTA CRUDA DE GEMINI ===");
+            log.info(response);
+
+            String cleanedResponse = response.replace("``````", "").trim();
+
+            log.info("=== RESPUESTA LIMPIA ===");
+            log.info(cleanedResponse);
+
+            return cleanedResponse;
+
+        } catch (Exception e) {
+            log.error("❌ ERROR GENERANDO PREGUNTAS CON GEMINI: {}", e.getMessage(), e);
+
+            return """
+            {
+              "questions": [
+                {"question": "Error al generar pregunta con IA. Intenta de nuevo.", "type": "TECHNICAL"}
+              ]
+            }
+            """;
+        }
     }
 
+
     public String evaluateInterviewAnswer(String question, String answer, String targetRole) {
+
+        // ✅ MOCK temporal para testing
+        if (apiKey == null || apiKey.isEmpty()) {
+            return """
+        {
+          "score": 8.5,
+          "feedback": "Excelente respuesta que demuestra buen conocimiento del tema.",
+          "strengths": ["Claridad en la explicación", "Buenos ejemplos prácticos"],
+          "improvements": ["Podría profundizar en casos edge", "Considerar mencionar mejores prácticas"]
+        }
+        """;
+        }
+
         String prompt = String.format("""
         Evalúa la siguiente respuesta de entrevista:
         
@@ -267,24 +309,19 @@ public class GeminiService {
 
 
     private String callGemini(String prompt) {
-        // URL completa: https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=API_KEY
         String url = String.format("%s/%s:generateContent?key=%s", apiUrl, model, apiKey);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        // Estructura del request body de Gemini
         Map<String, Object> requestBody = new HashMap<>();
-
         Map<String, Object> part = new HashMap<>();
         part.put("text", prompt);
 
         Map<String, Object> content = new HashMap<>();
         content.put("parts", List.of(part));
-
         requestBody.put("contents", List.of(content));
 
-        // Configuración adicional
         Map<String, Object> generationConfig = new HashMap<>();
         generationConfig.put("temperature", 0.7);
         generationConfig.put("maxOutputTokens", 1000);
@@ -294,48 +331,42 @@ public class GeminiService {
 
         log.info("Llamando a Gemini API: {}", url.replace(apiKey, "***"));
 
-        ResponseEntity<Map> response = restTemplate.exchange(
-                url,
-                HttpMethod.POST,
-                entity,
-                Map.class
-        );
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    Map.class
+            );
 
-        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-            Map<String, Object> body = response.getBody();
-            log.debug("Respuesta de Gemini: {}", body);
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                Map<String, Object> body = response.getBody();
+                log.debug("Respuesta de Gemini: {}", body);
 
-            // Estructura de respuesta de Gemini:
-            // {
-            //   "candidates": [
-            //     {
-            //       "content": {
-            //         "parts": [
-            //           {
-            //             "text": "..."
-            //           }
-            //         ]
-            //       }
-            //     }
-            //   ]
-            // }
+                List<Map<String, Object>> candidates = (List<Map<String, Object>>) body.get("candidates");
+                if (candidates != null && !candidates.isEmpty()) {
+                    Map<String, Object> candidate = candidates.get(0);
+                    Map<String, Object> responseContent = (Map<String, Object>) candidate.get("content");
+                    List<Map<String, Object>> parts = (List<Map<String, Object>>) responseContent.get("parts");
 
-            List<Map<String, Object>> candidates = (List<Map<String, Object>>) body.get("candidates");
-            if (candidates != null && !candidates.isEmpty()) {
-                Map<String, Object> candidate = candidates.get(0);
-                Map<String, Object> cont = (Map<String, Object>) candidate.get("cont");
-                List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
-
-                if (parts != null && !parts.isEmpty()) {
-                    String text = (String) parts.get(0).get("text");
-                    log.info("Respuesta de Gemini obtenida exitosamente");
-                    return text;
+                    if (parts != null && !parts.isEmpty()) {
+                        String text = (String) parts.get(0).get("text");
+                        log.info("Respuesta de Gemini obtenida exitosamente");
+                        return text;
+                    }
                 }
             }
+        } catch (HttpClientErrorException.TooManyRequests e) {
+            log.error("❌ CUOTA DE GEMINI EXCEDIDA: {}", e.getMessage());
+            throw new RuntimeException("Has alcanzado el límite de solicitudes de Gemini API. Por favor espera unos minutos o cambia al modelo gemini-pro.");
+        } catch (Exception e) {
+            log.error("❌ ERROR LLAMANDO A GEMINI: {}", e.getMessage(), e);
+            throw new RuntimeException("Error comunicándose con Gemini API: " + e.getMessage());
         }
 
         throw new RuntimeException("No se pudo obtener respuesta de Gemini API");
     }
+
 
     private String generateDefaultRecommendation(String targetRole, String experienceLevel) {
         log.info("Generando recomendación por defecto para rol: {} y nivel: {}", targetRole, experienceLevel);
